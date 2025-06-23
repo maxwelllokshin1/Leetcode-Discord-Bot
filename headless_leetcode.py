@@ -129,34 +129,34 @@ def login(user_id):
         if driver:
             driver.quit()
 
-def problem(user_id):
+def problem(daily):
     driver = None
     try:
-        print(f"User {user_id} prompted login")
+        # print(f"User {user_id} prompted login")
         driver = driver_login()
 
-        if load_cookies(driver, user_id):
-            driver.get("https://leetcode.com/problems")
-            wait = WebDriverWait(driver, 30)
-            wait.until(EC.presence_of_element_located((By.TAG_NAME, "a")))
-            html = driver.page_source
+        # if load_cookies(driver, user_id):
+        driver.get("https://leetcode.com/problems")
+        wait = WebDriverWait(driver, 30)
+        time.sleep(2)
+        wait.until(EC.presence_of_element_located((By.TAG_NAME, "a")))
+        html = driver.page_source
 
-            soup = BeautifulSoup(html, 'html.parser')
-            all_links = []
-            links = []
-            for link in soup.find("div", class_="w-full pb-[80px]").find_all('a'):
-                links.append({"Name": link.find("div", class_="ellipsis line-clamp-1").get_text(strip=True), "Links":link.get('href', None)})
-                if len(links) == 10:
-                    all_links.append(links)
-                    links = []
+        soup = BeautifulSoup(html, 'html.parser')
+        all_links = []
+        links = []
+        for link in soup.find("div", class_="w-full pb-[80px]").find_all('a'):
+            links.append({"Name": link.find("div", class_="ellipsis line-clamp-1").get_text(strip=True), "Links":link.get('href', None)})
+            if len(links) == 10:
+                all_links.append(links)
+                links = []
+            if daily:
+                return [links]
                 
-            return "✅ Retrieved all Problems", all_links
-
-        return "❌ Error please log in", None
-
+        return all_links
     except Exception as e:
         print(f"Login error: {e}")
-        return "❌Error", None
+        return None
 
     finally:
         if driver:

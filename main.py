@@ -63,6 +63,7 @@ async def Leetcode(ctx):
         )
         embed.add_field(name="login", value="🔓 Login to leetcode", inline=False)
         embed.add_field(name="problems", value="📝 Present all leetcode problems", inline=False)
+        embed.add_field(name="daily", value="☀️ View the daily leetcode problem", inline=False)
         embed.add_field(name="reset", value="♻️ Resets the users login", inline=False)
         embed.add_field(name="account", value="👤 View amount of problems completed", inline=False)
 
@@ -91,22 +92,36 @@ async def login(ctx):
         await ctx.send("❌ CANNOT send DM's. Check privacy settings")
 
 @Leetcode.command()
-async def problems(ctx):
+async def daily(ctx):
     try:
-        msg = await ctx.send("📫We sent you a message in **DM'S**")
-
-        # Notify in DM
-        status = await ctx.author.send("⏳ Please wait while I grab your LeetCode problems...")
+        msg = await ctx.send("🍌 Fetching daily problem...")
 
         # Run in background
         loop = asyncio.get_running_loop()
-        message, all_links = await loop.run_in_executor(None, ltl.problem, ctx.author.id)
+        link = await loop.run_in_executor(None, ltl.problem, True)
+        embed = await embed_set(0, link[0], link, False, "☀️ DAILY PROBLEM")
+        await msg.edit(embed=embed)
+        return
+    except discord.Forbidden:
+        await ctx.send("❌ CANNOT send DM's. Check privacy settings")
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        await ctx.send("❌ Something went wrong while fetching your problems.")
 
-        await status.edit(content=message)
+@Leetcode.command()
+async def problems(ctx):
+    try:
+        msg = await ctx.send("🍌 Fetching top 100 probelms...")
+
+        # Notify in DM
+
+        # Run in background
+        loop = asyncio.get_running_loop()
+        all_links = await loop.run_in_executor(None, ltl.problem, False)
 
         if all_links != None:
             current_page = 0
-            await msg.edit(embed=await embed_set(current_page, all_links[current_page], all_links))
+            await msg.edit(embed=await embed_set(current_page, all_links[current_page], all_links, True, "🧾 LeetCode Problems"))
 
             # Add reactions
             await msg.add_reaction("⬅️")
@@ -127,10 +142,10 @@ async def problems(ctx):
 
                     if str(reaction.emoji) == "➡️" and current_page < len(all_links) - 1:
                         current_page += 1
-                        await msg.edit(embed=await embed_set(current_page, all_links[current_page], all_links))
+                        await msg.edit(embed=await embed_set(current_page, all_links[current_page], all_links, True, "🧾 LeetCode Problems"))
                     elif str(reaction.emoji) == "⬅️" and current_page > 0:
                         current_page -= 1
-                        await msg.edit(embed=await embed_set(current_page, all_links[current_page], all_links))
+                        await msg.edit(embed=await embed_set(current_page, all_links[current_page], all_links, True, "🧾 LeetCode Problems"))
 
                 except asyncio.TimeoutError:
                     # Disable interaction after timeout
@@ -143,9 +158,9 @@ async def problems(ctx):
         print(f"Unexpected error: {e}")
         await ctx.send("❌ Something went wrong while fetching your problems.")
 
-async def embed_set(page_num, links, all_links):
+async def embed_set(current_page, links, all_links, footer, title):
     embed = discord.Embed(
-        title=f"🧾 LeetCode Problems (Page {page_num + 1}/{len(all_links)})",
+        title=f" {title} (Page {current_page + 1}/{len(all_links)})",
         color=discord.Color.from_rgb(0, 255, 0)
     )
 
@@ -157,8 +172,8 @@ async def embed_set(page_num, links, all_links):
             value=f"[Go to problem](https://leetcode.com{link['Links']})", 
             inline=False
         )
-
-    embed.set_footer(text="Use ⬅️ ➡️ to navigate pages.")
+    if footer:
+        embed.set_footer(text="Use ⬅️ ➡️ to navigate pages.")
     return embed
 
 @Leetcode.command()
